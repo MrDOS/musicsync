@@ -54,7 +54,7 @@ cat artist_paths.txt | while read artist_path
 do
     find "$artist_path" -name '*.flac' -o -name '*.mp3'
 done \
-    | sed -e 's/\.flac$//' \
+    | sed -e 's/\.[0-9a-z]\+$//' \
           -e 's/^'"$source_path_escaped"'//' \
     | sort \
     >source_files.txt
@@ -62,7 +62,7 @@ done \
 echo "Scanning target..."
 target_path_escaped="$(echo "$target_path" | sed -e 's/\//\\\//g')"
 find "$target_path" -name '*.mp3' \
-    | sed -e 's/\.mp3$//' \
+    | sed -e 's/\.[0-9a-z]\+$//' \
           -e 's/^'"$target_path_escaped"'//' \
     | sort \
     >target_files.txt
@@ -92,40 +92,42 @@ transcode ()
     target_filename="$target_path"/"$(echo "$filename_base" | sed -e 's/^The \([^\/]\+\)/\1, The/' -e 's/[^A-Za-z0-9]*\([A-Za-z0-9]\).*/\u\1\/\0/')".mp3
     artwork_filename="$(dirname "$target_filename")"/folder.jpg
 
-    # Gross.
-    eval "$(metaflac --export-tags-to - "$source_filename" | sed -e 's/"/\\"/g' -e 's/\$/\\$/g' -e 's/=/="/' -e 's/$/"/')"
-
     mkdir -p "$(dirname "$target_filename")"
 
     if [[ "$source_filename" == *.mp3 ]]
     then
-        cp "$source_filename" "$target_filename"
-    elif [ -r "$artwork_filename" ]
-    then
-        flac -dc "$source_filename" \
-            | nice -n 15 lame \
-                -b 320 \
-                --tt "$TITLE" \
-                --ta "$ARTIST" \
-                --tl "$ALBUM" \
-                --ty "$DATE" \
-                --tn "$TRACKNUMBER" \
-                --tg "$GENRE" \
-                --ti "$artwork_filename" \
-                - \
-                "$target_filename"
+        cp -v "$source_filename" "$target_filename"
     else
-        flac -dc "$source_filename" \
-            | nice -n 15 lame \
-                -b 320 \
-                --tt "$TITLE" \
-                --ta "$ARTIST" \
-                --tl "$ALBUM" \
-                --ty "$DATE" \
-                --tn "$TRACKNUMBER" \
-                --tg "$GENRE" \
-                - \
-                "$target_filename"
+        # Gross.
+        eval "$(metaflac --export-tags-to - "$source_filename" | sed -e 's/"/\\"/g' -e 's/\$/\\$/g' -e 's/=/="/' -e 's/$/"/')"
+
+        if [ -r "$artwork_filename" ]
+        then
+            flac -dc "$source_filename" \
+                | nice -n 15 lame \
+                    -b 320 \
+                    --tt "$TITLE" \
+                    --ta "$ARTIST" \
+                    --tl "$ALBUM" \
+                    --ty "$DATE" \
+                    --tn "$TRACKNUMBER" \
+                    --tg "$GENRE" \
+                    --ti "$artwork_filename" \
+                    - \
+                    "$target_filename"
+        else
+            flac -dc "$source_filename" \
+                | nice -n 15 lame \
+                    -b 320 \
+                    --tt "$TITLE" \
+                    --ta "$ARTIST" \
+                    --tl "$ALBUM" \
+                    --ty "$DATE" \
+                    --tn "$TRACKNUMBER" \
+                    --tg "$GENRE" \
+                    - \
+                    "$target_filename"
+        fi
     fi
     touch -r "$source_filename" "$target_filename"
 }
