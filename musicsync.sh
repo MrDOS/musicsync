@@ -80,7 +80,7 @@ convert_art ()
     fi
 
     mkdir -p "$(dirname "$target_filename")"
-    convert "$source_filename" -resize 600x600 -quality 92 "$target_filename"
+    convert "$source_filename" -resize 180x180 -quality 92 "$target_filename"
     echo "Converted $source_filename → $target_filename."
 }
 export -f convert_art
