@@ -164,6 +164,15 @@ sed -e 's/.\///' \
 echo "Removing album art files..."
 find "$target_path" -name '*.jpg' -print0 | xargs -0 rm
 
+echo "Fixing directory modification dates..."
+find "$target_path" -type d \
+    | sort \
+    | tac \
+    | while read dir
+do
+    touch -r "$dir"/"$(ls -1t "$dir" | head -n 1)" "$dir"
+done
+
 source_file_count=$(wc -l source_files.txt | cut -d ' ' -f 1)
 if [ $source_file_count -gt $FILE_LIMIT ]
 then
