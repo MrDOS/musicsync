@@ -103,7 +103,8 @@ transcode ()
 
         if [ -r "$artwork_filename" ]
         then
-            flac -dc "$source_filename" \
+            flac -dc \
+                 --apply-replaygain-which-is-not-lossless "$source_filename" \
                 | nice -n 15 lame \
                     -b 320 \
                     --tt "$TITLE" \
@@ -116,7 +117,8 @@ transcode ()
                     - \
                     "$target_filename"
         else
-            flac -dc "$source_filename" \
+            flac -dc \
+                 --apply-replaygain-which-is-not-lossless "$source_filename" \
                 | nice -n 15 lame \
                     -b 320 \
                     --tt "$TITLE" \
