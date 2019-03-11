@@ -3,6 +3,13 @@
 SCRIPT_DIR="$(dirname "$0")"
 FILE_LIMIT=9999
 
+# Conversion/transcoding operations are run in separate processes by
+# parallel(1), so we need to export any variables we want them to access.
+export ART_RESOLUTION=180x180
+export ART_QUALITY=92
+export TRANSCODE_NICE=15
+export AUDIO_BITRATE=320
+
 if [ $# -lt 2 ]
 then
     echo "Usage: $0 lastfm-user source-path target-path" 1>&2
@@ -80,7 +87,10 @@ convert_art ()
     fi
 
     mkdir -p "$(dirname "$target_filename")"
-    convert "$source_filename" -resize 180x180 -quality 92 "$target_filename"
+    convert "$source_filename" \
+            -resize $ART_RESOLUTION \
+            -quality $ART_QUALITY \
+            "$target_filename"
     echo "Converted $source_filename → $target_filename."
 }
 export -f convert_art
@@ -105,8 +115,8 @@ transcode ()
         then
             flac -dc \
                  --apply-replaygain-which-is-not-lossless "$source_filename" \
-                | nice -n 15 lame \
-                    -b 320 \
+                | nice -n $TRANSCODE_NICE lame \
+                    -b $AUDIO_BITRATE \
                     --tt "$TITLE" \
                     --ta "$ARTIST" \
                     --tl "$ALBUM" \
@@ -119,8 +129,8 @@ transcode ()
         else
             flac -dc \
                  --apply-replaygain-which-is-not-lossless "$source_filename" \
-                | nice -n 15 lame \
-                    -b 320 \
+                | nice -n $TRANSCODE_NICE lame \
+                    -b $AUDIO_BITRATE \
                     --tt "$TITLE" \
                     --ta "$ARTIST" \
                     --tl "$ALBUM" \
