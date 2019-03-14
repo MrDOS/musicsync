@@ -7,6 +7,8 @@ FILE_LIMIT=9999
 # parallel(1), so we need to export any variables we want them to access.
 export ART_RESOLUTION=180x180
 export ART_QUALITY=92
+# See the man page for flac(1).
+export REPLAYGAIN_CONFIG=6aLn1
 export TRANSCODE_NICE=15
 export AUDIO_BITRATE=320
 
@@ -114,7 +116,8 @@ transcode ()
         if [ -r "$artwork_filename" ]
         then
             flac -dc \
-                 --apply-replaygain-which-is-not-lossless "$source_filename" \
+                 --apply-replaygain-which-is-not-lossless=$REPLAYGAIN_CONFIG \
+                 "$source_filename" \
                 | nice -n $TRANSCODE_NICE lame \
                     -b $AUDIO_BITRATE \
                     --tt "$TITLE" \
@@ -128,7 +131,8 @@ transcode ()
                     "$target_filename"
         else
             flac -dc \
-                 --apply-replaygain-which-is-not-lossless "$source_filename" \
+                 --apply-replaygain-which-is-not-lossless=$REPLAYGAIN_CONFIG \
+                 "$source_filename" \
                 | nice -n $TRANSCODE_NICE lame \
                     -b $AUDIO_BITRATE \
                     --tt "$TITLE" \
