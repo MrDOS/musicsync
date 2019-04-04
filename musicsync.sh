@@ -5,8 +5,8 @@ FILE_LIMIT=9999
 
 # Conversion/transcoding operations are run in separate processes by
 # parallel(1), so we need to export any variables we want them to access.
-export ART_RESOLUTION=180x180
-export ART_QUALITY=92
+export ART_RESOLUTION=182x182
+export ART_QUALITY=95
 # See the man page for flac(1).
 export REPLAYGAIN_CONFIG=6aLn1
 export TRANSCODE_NICE=15
