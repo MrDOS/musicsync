@@ -67,11 +67,19 @@ if __name__ == '__main__':
     for artist in api.userGetTopArtists(username, period=LastFmApi.PERIOD_6_MONTHS, limit=500)['topartists']['artist']:
         artist_name = artist['name']
 
-        # Any “feat.” or “with” in the name is almost certainly the track
-        # artist, not the album artist.
-        artist_name = re.sub(r' (feat\.|with|vs\.) .*', '', artist_name, flags=re.IGNORECASE)
-
+        # Any “feat.” in the name is almost certainly the track artist, not the
+        # album artist.
+        artist_name = re.sub(r' feat\.? .*', '', artist_name, flags=re.IGNORECASE)
         artists.add(artist_name)
+
+        # However, even if “with” and “vs.” are most likely to also be peculiar
+        # to the track artist, it's possible that they might appear in the
+        # album artist (e.g., We Butter the Bread with Butter). Try stripping
+        # these from the artist name, and include both variants in the output.
+        # Downstream can decide what to do with them.
+        maybe_artist_name = re.sub(r' (with|vs\.?) .*', '', artist_name, flags=re.IGNORECASE)
+        if maybe_artist_name != artist_name:
+            artists.add(artist_name)
 
     for artist in sorted(list(artists), key=str.lower):
         print('%s' % artist)
