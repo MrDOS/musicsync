@@ -181,7 +181,7 @@ echo "Removing album art files..."
 find "$target_path" -name '*.jpg' -print0 | xargs -0 rm
 
 echo "Removing empty directories..."
-find /media/usb0/Music -type d \
+find "$target_path" -type d \
     | tac \
     | xargs -d '\n' rmdir --ignore-fail-on-non-empty
 
