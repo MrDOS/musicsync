@@ -1,6 +1,10 @@
 #! /bin/bash
 
 SCRIPT_DIR="$(dirname "$0")"
+# Require user confirmation if we're about to try to remove more than this many
+# files from the target.
+REMOVE_LIMIT=100
+# Notify the user if we end up with more than this many files in the target.
 FILE_LIMIT=9999
 
 # Conversion/transcoding operations are run in separate processes by
@@ -12,15 +16,36 @@ export REPLAYGAIN_CONFIG=6aLn1
 export TRANSCODE_NICE=15
 export AUDIO_BITRATE=320
 
+remove_lots=0
+
+while getopts f flag
+do
+    case "$flag" in
+    f)
+        echo "Warning: Forcing removal of lots of files."
+        remove_lots=1
+        ;;
+    ?)
+        exit;
+        ;;
+    esac
+done
+
+shift $(expr $OPTIND - 1)
+
 if [ $# -lt 2 ]
 then
-    echo "Usage: $0 lastfm-user source-path target-path" 1>&2
+    echo "Usage: $0 [-f] lastfm-user source-path target-path" 1>&2
     exit 1
 fi
 
 export lastfm_user="$1"
 export source_path="$2"/
 export target_path="$3"/
+
+echo "Last.FM user: $lastfm_user" 1>&2
+echo "Source path: $source_path" 1>&2
+echo "Target path: $target_path" 1>&2
 
 if [ ! -d "$source_path" -o ! -r "$source_path" ]
 then
@@ -156,7 +181,28 @@ sed -e 's/^The \([^\/]\+\)/\1, The/' \
     | diff --unchanged-line-format= --old-line-format= --new-line-format='%L' - target_files.txt \
     | sed -e 's/^/'"$target_path_escaped"'/' \
           -e 's/$/.mp3/' \
-    | xargs -d '\n' -r rm
+    >remove.txt
+
+remove_count=$(wc -l remove.txt | cut -d ' ' -f 1)
+
+if [ $remove_count -ge $REMOVE_LIMIT ]
+then
+    if [ $remove_lots -eq 1 ]
+    then
+        cat <<WARN 1>&2
+Warning: This operation will remove $remove_count files from the target.
+WARN
+    else
+        cat <<WARN 1>&2
+Error: This operation will remove $remove_count files from the target. If
+you're sure you want to do this, re-run the script with the -f option.
+WARN
+        exit 1
+    fi
+fi
+
+<remove.txt xargs -d '\n' -r rm
+rm remove.txt
 
 echo "Converting cover art..."
 sed -e 's/.\///' \
@@ -197,7 +243,10 @@ done
 source_file_count=$(wc -l source_files.txt | cut -d ' ' -f 1)
 if [ $source_file_count -gt $FILE_LIMIT ]
 then
-    echo "Warning: $source_file_count songs found in the source, but the destination supports only up to $FILE_LIMIT files."
+    cat <<WARN 1>&2
+Warning: $source_file_count songs found in the source, but the destination
+supports only up to $FILE_LIMIT files.
+WARN
 fi
 
 rm artist_names.txt \
