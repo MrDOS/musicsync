@@ -17,13 +17,17 @@ export TRANSCODE_NICE=15
 export AUDIO_BITRATE=320
 
 remove_lots=0
+remove_prompt=0
 
-while getopts f flag
+while getopts fp flag
 do
     case "$flag" in
     f)
         echo "Warning: Forcing removal of lots of files."
         remove_lots=1
+        ;;
+    p)
+        remove_prompt=1
         ;;
     ?)
         exit;
@@ -35,7 +39,7 @@ shift $(expr $OPTIND - 1)
 
 if [ $# -lt 2 ]
 then
-    echo "Usage: $0 [-f] lastfm-user source-path target-path" 1>&2
+    echo "Usage: $0 [-f] [-p] lastfm-user source-path target-path" 1>&2
     exit 1
 fi
 
@@ -192,10 +196,23 @@ then
         cat <<WARN 1>&2
 Warning: This operation will remove $remove_count files from the target.
 WARN
+    elif [ $remove_prompt -eq 1 ]
+    then
+        cat <<WARN 1>&2
+Warning: This operation will remove $remove_count files from the target. If
+you're sure you want to do this, type “yes”:
+WARN
+        read confirmation
+        if [ "$confirmation" != "yes" ]
+        then
+            echo "Didn't think so. Bye!" 1>&2
+            exit 1
+        fi
     else
         cat <<WARN 1>&2
 Error: This operation will remove $remove_count files from the target. If
-you're sure you want to do this, re-run the script with the -f option.
+you're sure you want to do this, re-run the script with the -f option to force
+it, or -p to interactively prompt you about it.
 WARN
         exit 1
     fi
