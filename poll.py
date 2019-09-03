@@ -63,14 +63,26 @@ if __name__ == '__main__':
 
     api = LastFmApi(lastfm_api_key)
 
-    artists = set()
-    for artist in api.userGetTopArtists(username, period=LastFmApi.PERIOD_6_MONTHS, limit=500)['topartists']['artist']:
-        artist_name = artist['name']
+    all_period_albums = []
+    for period, limit in (#(LastFmApi.PERIOD_OVERALL, 50),
+                          (LastFmApi.PERIOD_12_MONTHS, 150),
+                          (LastFmApi.PERIOD_6_MONTHS, 200),
+                          (LastFmApi.PERIOD_3_MONTHS, 250),
+                          (LastFmApi.PERIOD_1_MONTHS, 250),
+                          (LastFmApi.PERIOD_7_DAYS, 100)):
+        period_albums = api.userGetTopAlbums(username, period=period, limit=limit)['topalbums']['album']
+        print(f'Found {len(period_albums)} for the period {period}.', file=sys.stderr)
+        all_period_albums.extend(period_albums)
+
+    albums = set()
+    for album in all_period_albums:
+        artist_name = album['artist']['name']
+        album_name = album['name']
 
         # Any “feat.” in the name is almost certainly the track artist, not the
         # album artist.
         artist_name = re.sub(r' feat\.? .*', '', artist_name, flags=re.IGNORECASE)
-        artists.add(artist_name)
+        albums.add((artist_name, album_name))
 
         # However, even if “with” and “vs.” are most likely to also be peculiar
         # to the track artist, it's possible that they might appear in the
@@ -79,7 +91,7 @@ if __name__ == '__main__':
         # Downstream can decide what to do with them.
         maybe_artist_name = re.sub(r' (with|vs\.?) .*', '', artist_name, flags=re.IGNORECASE)
         if maybe_artist_name != artist_name:
-            artists.add(artist_name)
+            albums.add((maybe_artist_name, album_name))
 
-    for artist in sorted(list(artists), key=str.lower):
-        print('%s' % artist)
+    for album in sorted(list(albums), key=lambda album: (album[0].lower(), album[1].lower())):
+        print('%s - %s' % album)

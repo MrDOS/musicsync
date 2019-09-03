@@ -65,32 +65,32 @@ fi
 
 echo "Transcoding from \"$2\" to \"$3\"."
 
-echo "Polling Last.FM for artists..."
-if ! "$SCRIPT_DIR"/poll.py "$lastfm_user" >artist_names.txt
+echo "Polling Last.FM for albums..."
+if ! "$SCRIPT_DIR"/poll.py "$lastfm_user" >album_names.txt
 then
     exit 1
 fi
 
-if [ -r always_artists.txt ]
+if [ -r always_albums.txt ]
 then
-    echo "Including additional artists..."
-    cat always_artists.txt >>artist_names.txt
+    echo "Including additional albums..."
+    cat always_albums.txt >>album_names.txt
 fi
 
-echo "Finding matching artists in source..."
-if ! "$SCRIPT_DIR"/find.py "$source_path" <artist_names.txt \
+echo "Finding matching albums in source..."
+if ! "$SCRIPT_DIR"/find.py "$source_path" <album_names.txt \
     | sort \
     | uniq \
-    >artist_paths.txt
+    >album_paths.txt
 then
     exit 1
 fi
 
 echo "Scanning source..."
 source_path_escaped="$(echo "$source_path" | sed -e 's/\//\\\//g')"
-cat artist_paths.txt | while read artist_path
+cat album_paths.txt | while read album_path
 do
-    find "$artist_path" -name '*.flac' -o -name '*.mp3'
+    find "$album_path" -name '*.flac' -o -name '*.mp3'
 done \
     | sed -e 's/\.[0-9a-z]\+$//' \
           -e 's/^'"$source_path_escaped"'//' \
@@ -266,8 +266,8 @@ supports only up to $FILE_LIMIT files.
 WARN
 fi
 
-rm artist_names.txt \
-   artist_paths.txt \
+rm album_names.txt \
+   album_paths.txt \
    source_files.txt \
    target_files.txt
 
