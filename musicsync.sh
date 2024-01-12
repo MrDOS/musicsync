@@ -66,10 +66,12 @@ fi
 echo "Transcoding from \"$2\" to \"$3\"."
 
 echo "Polling Last.FM for albums..."
-if ! "$SCRIPT_DIR"/poll.py "$lastfm_user" >album_names.txt
+if ! "$SCRIPT_DIR"/poll.py "$lastfm_user" >polled_albums.txt
 then
-    exit 1
+   exit 1
 fi
+
+cp polled_albums.txt album_names.txt
 
 if [ -r always_albums.txt ]
 then
@@ -266,7 +268,8 @@ supports only up to $FILE_LIMIT files.
 WARN
 fi
 
-rm album_names.txt \
+rm polled_albums.txt \
+   album_names.txt \
    album_paths.txt \
    source_files.txt \
    target_files.txt
