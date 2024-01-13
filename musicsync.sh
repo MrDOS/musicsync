@@ -101,7 +101,10 @@ done \
 
 echo "Scanning target..."
 target_path_escaped="$(echo "$target_path" | sed -e 's/\//\\\//g')"
-find "$target_path" -name '*.mp3' \
+# Need to ignore silent filler files in the target, because they will never
+# exist in the source, and so if they're left in, the next bit will always try
+# to remove them.
+find "$target_path" -name '*.mp3' -and \! -name '00.mp3' \
     | sed -e 's/\.[0-9a-z]\+$//' \
           -e 's/^'"$target_path_escaped"'//' \
     | sort \
@@ -220,6 +223,22 @@ WARN
     fi
 fi
 
+# Now we can stuff a list of silent filler files to remove. It's OK to slightly
+# over-remove here (e.g., removing 00.mp3 from the artist directory even if
+# we're not fully removing all works by that artist), because it's not
+# tremendously costly to regenerate a few of them; we just want to avoid having
+# to regenerate all of them every time we sync.
+<remove.txt xargs -d '\n' -n 1 dirname | sort --unique | while read dir
+do
+    while [ $(echo "$dir" | wc -c) -gt $(echo "$target_path" | wc -c) ]
+    do
+        echo "$dir"/00.mp3
+        dir="$(dirname "$dir")"
+    done
+done \
+    | sort --unique \
+    >>remove.txt
+
 <remove.txt xargs -d '\n' -r rm
 rm remove.txt
 
@@ -250,13 +269,36 @@ find "$target_path" -type d \
     | tac \
     | xargs -d '\n' rmdir --ignore-fail-on-non-empty
 
+# When a USB stick is connected to a running head unit, the head unit will
+# immediately start playing the first track it finds on the device. And when it
+# finishes playing the last track in a directory, it will immediately start
+# playing the contents of the next directory. We'll put a “song” containing
+# five minutes of silence at the beginning of each directory to negate the
+# effect of this automatic playback.
+sox --null --type raw --rate 44100 --bits 16 --encoding signed-integer --channels 1 - trim 0:00 5:00 \
+    | lame --quiet -r -s 44.1 -m m -b 32 - "$target_path"/00.mp3
+find "$target_path" -type d \
+    | sort \
+    | tac \
+    | while read dir
+do
+    if [ -e "$dir"/00.mp3 ] || [ "$dir" = "$target_path" ]
+    then
+        continue
+    fi
+    cp "$target_path"/00.mp3 "$dir"
+done
+rm "$target_path"/00.mp3
+
 echo "Fixing directory modification dates..."
 find "$target_path" -type d \
     | sort \
     | tac \
     | while read dir
 do
-    touch -r "$dir"/"$(ls -1t "$dir" | head -n 1)" "$dir"
+    # We may have just created 00.mp3, so we should ignore its mtime.
+    ref="$dir"/"$(ls -1t "$dir" | grep -v '00\.mp3' | head -n 1)"
+    touch -r "$ref" "$dir"/00.mp3 "$dir"
 done
 
 source_file_count=$(wc -l source_files.txt | cut -d ' ' -f 1)
