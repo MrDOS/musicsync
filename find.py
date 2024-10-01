@@ -30,7 +30,7 @@ def find_albums(library_path, search_albums):
 
 def sanitize_name(name):
     name = name.lower()
-    return re.sub(r' \(\d+(;(?P<qualifier> [^)]+))?\)$', '\g<qualifier>', name).lower()
+    return re.sub(r' \(\d+(;(?P<qualifier> [^)]+))?\)$', r'\g<qualifier>', name).lower()
 
 def usage(error=None):
     if error is not None:
