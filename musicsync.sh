@@ -123,10 +123,10 @@ convert_art ()
     fi
 
     mkdir -p "$(dirname "$target_filename")"
-    convert "$source_filename" \
-            -resize $ART_RESOLUTION \
-            -quality $ART_QUALITY \
-            "$target_filename"
+    magick "$source_filename" \
+           -resize $ART_RESOLUTION \
+           -quality $ART_QUALITY \
+           "$target_filename"
     echo "Converted $source_filename → $target_filename."
 }
 export -f convert_art
